@@ -11,7 +11,8 @@ import {
   VersionedTransaction,
   SendOptions,
 } from '@solana/web3.js';
-import bs58 from 'bs58';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const bs58 = require('bs58');
 
 /**
  * Abstract signer interface for wallet signing
