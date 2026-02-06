@@ -140,13 +140,23 @@ streamCommand
     
     conn.connect();
     
-    // Handle Ctrl+C
-    process.on('SIGINT', () => {
+    // Handle graceful shutdown
+    let isShuttingDown = false;
+    const shutdown = async () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      
       console.log('\n');
       info('Disconnecting...');
       streaming.disconnectAll();
+      
+      // Give time for cleanup
+      await new Promise(r => setTimeout(r, 500));
       process.exit(0);
-    });
+    };
+    
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
     
     // Keep process alive
     await new Promise(() => {});
@@ -251,12 +261,23 @@ streamCommand
     
     conn.connect();
     
-    process.on('SIGINT', () => {
+    // Handle graceful shutdown
+    let isShuttingDown = false;
+    const shutdown = async () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      
       console.log('\n');
       info('Disconnecting...');
       streaming.disconnectAll();
+      
+      // Give time for cleanup
+      await new Promise(r => setTimeout(r, 500));
       process.exit(0);
-    });
+    };
+    
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
     
     await new Promise(() => {});
   });
@@ -302,12 +323,23 @@ streamCommand
     
     conn.connect();
     
-    process.on('SIGINT', () => {
+    // Handle graceful shutdown
+    let isShuttingDown = false;
+    const shutdown = async () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      
       console.log('\n');
       info('Disconnecting...');
       streaming.disconnectAll();
+      
+      // Give time for cleanup
+      await new Promise(r => setTimeout(r, 500));
       process.exit(0);
-    });
+    };
+    
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
     
     await new Promise(() => {});
   });
