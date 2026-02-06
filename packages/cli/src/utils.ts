@@ -114,7 +114,7 @@ export function spinner(text: string) {
  * Format SOL amount
  */
 export function formatSol(amount: number): string {
-  return `${amount.toFixed(6)} SOL`;
+  return `${amount.toFixed(9)} SOL`;
 }
 
 /**
