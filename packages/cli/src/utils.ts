@@ -10,10 +10,81 @@ import * as path from 'path';
 import * as os from 'os';
 
 /**
+ * Auth config stored in ~/.clawdvault/auth.json
+ */
+export interface AuthConfig {
+  sessionToken?: string;
+  wallet?: string;
+  expiresAt?: string;
+}
+
+/**
  * Get config directory
  */
 export function getConfigDir(): string {
   return path.join(os.homedir(), '.clawdvault');
+}
+
+/**
+ * Get auth config file path
+ */
+export function getAuthConfigPath(): string {
+  return path.join(getConfigDir(), 'auth.json');
+}
+
+/**
+ * Load auth config from disk
+ */
+export function loadAuthConfig(): AuthConfig | null {
+  const configPath = getAuthConfigPath();
+  if (!fs.existsSync(configPath)) {
+    return null;
+  }
+  
+  try {
+    const data = fs.readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(data) as AuthConfig;
+    
+    // Check if token is expired
+    if (config.expiresAt) {
+      const expiresAt = new Date(config.expiresAt);
+      if (expiresAt <= new Date()) {
+        // Token expired, remove it
+        fs.unlinkSync(configPath);
+        return null;
+      }
+    }
+    
+    return config;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save auth config to disk
+ */
+export function saveAuthConfig(config: AuthConfig): void {
+  const configDir = getConfigDir();
+  const configPath = getAuthConfigPath();
+  
+  // Create config dir if needed
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  fs.chmodSync(configPath, 0o600); // Secure permissions
+}
+
+/**
+ * Clear auth config (logout)
+ */
+export function clearAuthConfig(): void {
+  const configPath = getAuthConfigPath();
+  if (fs.existsSync(configPath)) {
+    fs.unlinkSync(configPath);
+  }
 }
 
 /**
@@ -85,13 +156,54 @@ export function createClientWithWallet(walletPath?: string): {
 } {
   const signer = loadSigner(walletPath);
   const baseUrl = getBaseUrl();
-  const client = createClient({ signer: signer || undefined, baseUrl });
+  
+  // Load auth config for session token
+  const authConfig = loadAuthConfig();
+  const sessionToken = authConfig?.sessionToken;
+  
+  const client = createClient({ 
+    signer: signer || undefined, 
+    baseUrl,
+    sessionToken,
+  });
   
   return {
     client,
     signer,
     walletAddress: signer?.publicKey.toBase58() ?? null,
   };
+}
+
+/**
+ * Create authenticated client (requires login)
+ */
+export function createAuthenticatedClient(walletPath?: string): {
+  client: ClawdVaultClient;
+  signer: KeypairSigner | null;
+  walletAddress: string | null;
+  sessionToken: string | null;
+} {
+  const { client, signer, walletAddress } = createClientWithWallet(walletPath);
+  const authConfig = loadAuthConfig();
+  
+  return {
+    client,
+    signer,
+    walletAddress,
+    sessionToken: authConfig?.sessionToken ?? null,
+  };
+}
+
+/**
+ * Require authentication or exit
+ */
+export function requireAuth(): AuthConfig {
+  const authConfig = loadAuthConfig();
+  if (!authConfig?.sessionToken) {
+    error('Not logged in. Run: clawdvault wallet login');
+    process.exit(1);
+  }
+  return authConfig;
 }
 
 /**

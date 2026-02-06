@@ -39,6 +39,10 @@ import {
   getWalletPath,
   loadSigner,
   requireWallet,
+  loadAuthConfig,
+  saveAuthConfig,
+  clearAuthConfig,
+  getAuthConfigPath,
 } from '../utils';
 
 export const walletCommand = new Command('wallet')
@@ -562,6 +566,127 @@ walletCommand
           throw airdropErr;
         }
       }
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+// Login - get JWT session token
+walletCommand
+  .command('login')
+  .description('Login to ClawdVault (get session token)')
+  .option('-w, --wallet <path>', 'Wallet file path')
+  .action(async (options) => {
+    const spin = spinner('Authenticating...').start();
+    
+    try {
+      const { client, signer, walletAddress } = createClientWithWallet(options.wallet);
+      requireWallet(signer);
+      
+      // Create session via wallet signature
+      const session = await client.createSession();
+      
+      if (!session.token) {
+        spin.stop();
+        error('Failed to get session token');
+        process.exit(1);
+      }
+      
+      // Calculate expiry (default 7 days if not provided)
+      // expiresIn is in seconds
+      const expiresInMs = (session.expiresIn || 7 * 24 * 60 * 60) * 1000;
+      const expiresAt = new Date(Date.now() + expiresInMs).toISOString();
+      
+      // Save auth config
+      saveAuthConfig({
+        sessionToken: session.token,
+        wallet: walletAddress!,
+        expiresAt,
+      });
+      
+      spin.stop();
+      success('Logged in successfully!');
+      console.log();
+      info(`Wallet: ${walletAddress}`);
+      info(`Session expires: ${new Date(expiresAt).toLocaleString()}`);
+      info(`Config saved to: ${getAuthConfigPath()}`);
+      console.log();
+    } catch (err) {
+      spin.stop();
+      handleError(err);
+    }
+  });
+
+// Logout - clear session token
+walletCommand
+  .command('logout')
+  .description('Logout from ClawdVault (clear session token)')
+  .action(async () => {
+    try {
+      const authConfig = loadAuthConfig();
+      
+      if (!authConfig) {
+        warn('Not logged in');
+        return;
+      }
+      
+      clearAuthConfig();
+      success('Logged out successfully');
+      console.log();
+    } catch (err) {
+      handleError(err);
+    }
+  });
+
+// Auth status
+walletCommand
+  .command('status')
+  .description('Show authentication status')
+  .action(async () => {
+    try {
+      const authConfig = loadAuthConfig();
+      
+      console.log(chalk.bold('\n🔐 Auth Status\n'));
+      
+      if (!authConfig?.sessionToken) {
+        warn('Not logged in');
+        info('Run: clawdvault wallet login');
+        console.log();
+        return;
+      }
+      
+      const table = new Table({
+        style: { head: [], border: [] },
+      });
+      
+      table.push(
+        { [chalk.cyan('Status')]: chalk.green('✓ Logged in') },
+        { [chalk.cyan('Wallet')]: authConfig.wallet || 'Unknown' },
+        { [chalk.cyan('Expires')]: authConfig.expiresAt ? new Date(authConfig.expiresAt).toLocaleString() : 'Unknown' },
+      );
+      
+      console.log(table.toString());
+      console.log();
+      
+      // Validate session with server
+      const { client } = createClientWithWallet();
+      const spin = spinner('Validating session...').start();
+      
+      try {
+        const validation = await client.validateSession();
+        spin.stop();
+        
+        if (validation.valid) {
+          success('Session is valid');
+        } else {
+          warn('Session may be expired or invalid');
+          info('Run: clawdvault wallet login');
+        }
+      } catch {
+        spin.stop();
+        warn('Could not validate session with server');
+      }
+      console.log();
     } catch (err) {
       handleError(err);
     }

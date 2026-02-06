@@ -11,6 +11,7 @@ import { tokenCommand } from './commands/token';
 import { tradeCommand } from './commands/trade';
 import { walletCommand } from './commands/wallet';
 import { streamCommand } from './commands/stream';
+import { chatCommand } from './commands/chat';
 
 const program = new Command();
 
@@ -25,6 +26,7 @@ program.addCommand(tokenCommand);
 program.addCommand(tradeCommand);
 program.addCommand(walletCommand);
 program.addCommand(streamCommand);
+program.addCommand(chatCommand);
 
 // Global error handling
 program.hook('preAction', () => {
