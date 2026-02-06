@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-02-05
+
+### Added
+- **Real-time streaming support** via Server-Sent Events (SSE)
+  - `ClawdVaultStreaming` class with `streamTrades()`, `streamToken()`, `streamChat()` methods
+  - Convenience methods: `onTrades()`, `onPrice()`, `onChat()` with callback API
+  - Auto-reconnect logic with configurable options
+  - Connection management (connect/disconnect per stream or all)
+
+- **CLI streaming commands**:
+  - `clawdvault stream trades -m <mint>` - Watch trades in real-time
+  - `clawdvault stream token -m <mint>` - Stream token price/market cap
+  - `clawdvault stream chat -m <mint>` - Stream chat messages
+  - `clawdvault token watch <mint>` - Alias for token price streaming
+  - `clawdvault trade stream -m <mint>` - Alias for trade streaming
+  - Multiple output modes: table (default), append, JSON
+  - JSON output (one object per line) for scripting/piping
+
+- **Backend SSE endpoints** (requires backend v0.2.0+):
+  - `GET /api/stream/trades?mint=<addr>` - Trade stream
+  - `GET /api/stream/token?mint=<addr>` - Token updates
+  - `GET /api/stream/chat?mint=<addr>` - Chat messages
+
+### Technical
+- Added `eventsource` polyfill for Node.js compatibility
+- Streaming uses ReadableStream with controller for proper async handling
+
 ## [0.1.1] - 2026-02-05
 
 ### Added

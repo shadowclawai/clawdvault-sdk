@@ -10,6 +10,7 @@ import { tokensCommand } from './commands/tokens';
 import { tokenCommand } from './commands/token';
 import { tradeCommand } from './commands/trade';
 import { walletCommand } from './commands/wallet';
+import { streamCommand } from './commands/stream';
 
 const program = new Command();
 
@@ -23,6 +24,7 @@ program.addCommand(tokensCommand);
 program.addCommand(tokenCommand);
 program.addCommand(tradeCommand);
 program.addCommand(walletCommand);
+program.addCommand(streamCommand);
 
 // Global error handling
 program.hook('preAction', () => {
