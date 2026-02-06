@@ -245,10 +245,13 @@ const { messages } = await client.getChat({
   limit: 50
 });
 
-// Send message (requires auth)
+// Send message (requires session)
+const { token } = await client.createSession();
+client.setSessionToken(token);
+
 await client.sendChat({
   mint: 'MINT_ADDRESS',
-  content: 'Hello world!'
+  message: 'Hello world!'
 });
 
 // Reactions

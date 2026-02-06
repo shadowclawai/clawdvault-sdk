@@ -190,6 +190,36 @@ export CLAWDVAULT_WALLET=~/.config/solana/id.json
 |--------|-------------|
 | `getNetworkStatus()` | Get API/network status |
 
+### Authentication
+
+Some operations (chat, profile updates) require authentication. ClawdVault uses session tokens signed by your wallet:
+
+```typescript
+import { createClient, KeypairSigner } from '@clawdvault/sdk';
+
+// 1. Create client with wallet signer
+const signer = KeypairSigner.fromFile('~/.config/solana/id.json');
+const client = createClient({ signer });
+
+// 2. Create a session (signs a message with your wallet)
+const { token } = await client.createSession();
+
+// 3. Set the session token
+client.setSessionToken(token);
+
+// 4. Now you can use authenticated endpoints
+await client.sendChat({ mint: 'TOKEN_MINT', message: 'Hello!' });
+await client.updateProfile({ username: 'degen123' });
+await client.addReaction('MESSAGE_ID', '🚀');
+
+// Sessions expire after 24 hours - create a new one when needed
+const { valid } = await client.validateSession();
+if (!valid) {
+  const { token: newToken } = await client.createSession();
+  client.setSessionToken(newToken);
+}
+```
+
 ### Wallet Signers
 
 ```typescript
