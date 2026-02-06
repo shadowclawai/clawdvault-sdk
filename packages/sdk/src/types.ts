@@ -34,6 +34,7 @@ export interface Trade {
   sol_amount: number;
   token_amount: number;
   price: number;
+  price_sol?: number;  // Alternative price field from some API responses
   trader: string;
   signature: string;
   created_at: string;
