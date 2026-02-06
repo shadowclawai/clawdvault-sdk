@@ -580,8 +580,15 @@ walletCommand
     const spin = spinner('Authenticating...').start();
     
     try {
-      const { client, signer, walletAddress } = createClientWithWallet(options.wallet);
+      // For login, create a fresh client WITHOUT existing session token
+      // (we're creating a new session, not using an old one)
+      const signer = loadSigner(options.wallet);
       requireWallet(signer);
+      const walletAddress = signer.publicKey.toBase58();
+      
+      const { createClient } = require('@clawdvault/sdk');
+      const baseUrl = process.env.CLAWDVAULT_API_URL;
+      const client = createClient({ signer, baseUrl });
       
       // Create session via wallet signature
       const session = await client.createSession();

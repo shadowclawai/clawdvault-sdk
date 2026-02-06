@@ -21,12 +21,6 @@ import {
   createReadOnlyClient,
   requireWallet,
 } from '../utils';
-import {
-  createStreaming,
-  StreamTokenUpdate,
-  StreamTokenConnected,
-} from '@clawdvault/sdk';
-
 export const tokenCommand = new Command('token')
   .description('Token operations');
 
@@ -296,100 +290,4 @@ tokenCommand
     }
   });
 
-// Watch token price (streaming)
-tokenCommand
-  .command('watch <mint>')
-  .description('Watch token price in real-time')
-  .option('--json', 'Output as JSON')
-  .action(async (mint: string, options) => {
-    const baseUrl = process.env.CLAWDVAULT_API_URL || 'https://clawdvault.com/api';
-    
-    console.log(chalk.bold(`\n📈 Watching ${shortenAddress(mint)}\n`));
-    info(`Connecting to ${baseUrl}...`);
-    console.log(chalk.dim('Press Ctrl+C to stop\n'));
-    
-    const streaming = createStreaming(baseUrl);
-    const conn = streaming.streamToken(mint);
-    
-    // Get SOL price for USD conversion
-    const client = createReadOnlyClient();
-    let solPrice: number = 0;
-    try {
-      const priceResult = await client.getSolPrice();
-      solPrice = priceResult.price ?? 0;
-    } catch {
-      // Continue without USD prices
-    }
-    
-    let tokenInfo: { name?: string; symbol?: string } = {};
-    let lastUpdate: StreamTokenUpdate | null = null;
-    
-    const displayUpdate = (update: StreamTokenUpdate) => {
-      if (options.json) {
-        console.log(JSON.stringify({ ...update, ...tokenInfo }));
-        return;
-      }
-      
-      console.clear();
-      console.log(chalk.bold(`\n📈 ${tokenInfo.name || 'Token'} (${tokenInfo.symbol || shortenAddress(mint)})\n`));
-      
-      const table = new Table({
-        style: { head: [], border: [] },
-      });
-      
-      const priceUsd = solPrice > 0 ? formatUsd(update.price_sol * solPrice) : '-';
-      const mcapUsd = solPrice > 0 ? formatUsd(update.market_cap_sol * solPrice) : '-';
-      
-      table.push(
-        { [chalk.cyan('Price (SOL)')]: formatSol(update.price_sol) },
-        { [chalk.cyan('Price (USD)')]: priceUsd },
-        { [chalk.cyan('Market Cap (SOL)')]: formatSol(update.market_cap_sol) },
-        { [chalk.cyan('Market Cap (USD)')]: mcapUsd },
-        { [chalk.cyan('Bonding Curve SOL')]: formatSol(update.real_sol_reserves) },
-        { [chalk.cyan('Status')]: update.graduated ? chalk.green('✓ Graduated') : chalk.yellow('Bonding Curve') },
-      );
-      
-      console.log(table.toString());
-      
-      if (lastUpdate && lastUpdate.price_sol !== update.price_sol) {
-        const change = ((update.price_sol - lastUpdate.price_sol) / lastUpdate.price_sol) * 100;
-        const changeStr = change >= 0 
-          ? chalk.green(`+${change.toFixed(2)}%`)
-          : chalk.red(`${change.toFixed(2)}%`);
-        console.log(`\n${chalk.dim('Last change:')} ${changeStr}`);
-      }
-      
-      console.log(chalk.dim('\nLast update: ' + new Date(update.timestamp).toLocaleTimeString()));
-      console.log(chalk.dim('Press Ctrl+C to stop'));
-      
-      lastUpdate = update;
-    };
-    
-    conn.onConnect(() => success('Connected to stream'));
-    conn.onDisconnect(() => warn('Disconnected - reconnecting...'));
-    
-    conn.on<StreamTokenConnected>('connected', (data) => {
-      tokenInfo = { name: data.name, symbol: data.symbol };
-      displayUpdate(data);
-    });
-    
-    conn.on<StreamTokenUpdate>('update', displayUpdate);
-    
-    conn.on<{ type: string; price_sol: number; sol_amount: number }>('trade', (trade) => {
-      if (lastUpdate) {
-        lastUpdate.price_sol = trade.price_sol;
-        displayUpdate(lastUpdate);
-      }
-    });
-    
-    conn.connect();
-    
-    process.on('SIGINT', () => {
-      console.log('\n');
-      info('Disconnecting...');
-      streaming.disconnectAll();
-      process.exit(0);
-    });
-    
-    await new Promise(() => {});
-  });
+// NOTE: Token watch command removed (streaming not yet supported)

@@ -20,11 +20,6 @@ import {
   createReadOnlyClient,
   requireWallet,
 } from '../utils';
-import {
-  createStreaming,
-  StreamTrade,
-} from '@clawdvault/sdk';
-
 export const tradeCommand = new Command('trade')
   .description('Trading operations');
 
@@ -345,100 +340,4 @@ tradeCommand
     }
   });
 
-// Stream trades in real-time
-tradeCommand
-  .command('stream')
-  .description('Stream trades in real-time')
-  .requiredOption('-m, --mint <address>', 'Token mint address')
-  .option('--json', 'Output as JSON (one object per line)')
-  .option('--append', 'Append mode (simple log format)')
-  .action(async (options) => {
-    const baseUrl = process.env.CLAWDVAULT_API_URL || 'https://clawdvault.com/api';
-    
-    console.log(chalk.bold(`\n📡 Streaming trades for ${shortenAddress(options.mint)}\n`));
-    info(`Connecting to ${baseUrl}...`);
-    console.log(chalk.dim('Press Ctrl+C to stop\n'));
-    
-    const streaming = createStreaming(baseUrl);
-    const conn = streaming.streamTrades(options.mint);
-    
-    const trades: StreamTrade[] = [];
-    const MAX_DISPLAY = 20;
-    
-    conn.onConnect(() => {
-      success('Connected to stream');
-      console.log();
-    });
-    
-    conn.onDisconnect(() => warn('Disconnected - reconnecting...'));
-    
-    conn.on<StreamTrade>('trade', (trade) => {
-      if (options.json) {
-        console.log(JSON.stringify(trade));
-        return;
-      }
-      
-      if (options.append) {
-        const typeStr = trade.type === 'buy' 
-          ? chalk.green('BUY ') 
-          : chalk.red('SELL');
-        const time = new Date(trade.created_at).toLocaleTimeString();
-        console.log(
-          `${chalk.dim(time)} ${typeStr} ${formatSol(trade.sol_amount).padEnd(15)} ` +
-          `${formatTokens(trade.token_amount).padEnd(12)} @ ${formatSol(trade.price_sol).padEnd(18)} ` +
-          `${chalk.dim(shortenAddress(trade.trader))}`
-        );
-        return;
-      }
-      
-      // Table mode
-      trades.unshift(trade);
-      if (trades.length > MAX_DISPLAY) {
-        trades.pop();
-      }
-      
-      console.clear();
-      console.log(chalk.bold(`\n📡 Live Trades - ${shortenAddress(options.mint)}\n`));
-      
-      const table = new Table({
-        head: [
-          chalk.cyan('Type'),
-          chalk.cyan('SOL'),
-          chalk.cyan('Tokens'),
-          chalk.cyan('Price'),
-          chalk.cyan('Trader'),
-          chalk.cyan('Time'),
-        ],
-        style: { head: [], border: [] },
-      });
-      
-      for (const t of trades) {
-        const typeStr = t.type === 'buy' 
-          ? chalk.green('BUY') 
-          : chalk.red('SELL');
-        
-        table.push([
-          typeStr,
-          formatSol(t.sol_amount),
-          formatTokens(t.token_amount),
-          formatSol(t.price_sol),
-          shortenAddress(t.trader),
-          new Date(t.created_at).toLocaleTimeString(),
-        ]);
-      }
-      
-      console.log(table.toString());
-      console.log(chalk.dim('\nPress Ctrl+C to stop'));
-    });
-    
-    conn.connect();
-    
-    process.on('SIGINT', () => {
-      console.log('\n');
-      info('Disconnecting...');
-      streaming.disconnectAll();
-      process.exit(0);
-    });
-    
-    await new Promise(() => {});
-  });
+// NOTE: Trade stream command removed (streaming not yet supported)
