@@ -172,12 +172,31 @@ export async function signAndSerialize(
 
 /**
  * Create signature for authenticated API requests
+ * Matches the format expected by ClawdVault API
  */
 export async function createAuthSignature(
   signer: WalletSigner,
-  payload: object
+  payload: object,
+  action?: string
 ): Promise<{ signature: string; wallet: string }> {
-  const message = JSON.stringify(payload);
+  // Create the message in the format the API expects
+  // ClawdVault:action:window:JSON.stringify(data)
+  const authAction = action || (payload as any).action || 'session';
+  const timestamp = Math.floor(Date.now() / 1000);
+  // Round to 5-minute windows to match API
+  const window = Math.floor(timestamp / 300) * 300;
+  
+  // Extract the data to sign based on action type
+  let signData: Record<string, unknown>;
+  if (authAction === 'session') {
+    signData = { action: 'create_session' };
+  } else {
+    // For chat/react, include relevant fields from payload
+    signData = { ...payload };
+  }
+  
+  const message = `ClawdVault:${authAction}:${window}:${JSON.stringify(signData)}`;
+  
   const messageBytes = new TextEncoder().encode(message);
   const signatureBytes = await signer.signMessage(messageBytes);
   
