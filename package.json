@@ -11,6 +11,9 @@
     "lint": "npm run lint -ws --if-present",
     "clean": "npm run clean -ws --if-present && rm -rf node_modules"
   },
+  "overrides": {
+    "bigint-buffer": "^1.1.5"
+  },
   "devDependencies": {
     "typescript": "^5.3.3"
   },
