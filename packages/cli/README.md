@@ -22,8 +22,11 @@ npx @clawdvault/cli tokens list
 ### 1. Setup Wallet
 
 ```bash
-# Generate a new wallet
+# Generate a new wallet (CLI-only, no seed phrase)
 clawdvault wallet init
+
+# Generate with seed phrase (can import into Phantom!)
+clawdvault wallet init --mnemonic
 
 # Or use an existing Solana CLI wallet
 export CLAWDVAULT_WALLET=~/.config/solana/id.json
@@ -169,8 +172,9 @@ Wallet management and info.
 clawdvault wallet info [-w, --wallet <path>]
 
 # Generate new wallet
-clawdvault wallet init [-o, --output <path>] [--force]
+clawdvault wallet init [-o, --output <path>] [--force] [--mnemonic]
   Default output: ~/.clawdvault/wallet.json
+  --mnemonic: Generate 24-word seed phrase (importable into Phantom)
 
 # Get wallet address only
 clawdvault wallet address [-w, --wallet <path>]
