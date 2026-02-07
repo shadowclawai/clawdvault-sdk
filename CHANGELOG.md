@@ -14,13 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stats endpoint returns `priceUsd`, `marketCapUsd`, and `solPriceUsd`
   - Candles endpoint supports `currency=usd` parameter
 
+### Added (CLI)
+- **New `token candles` command** for OHLCV price data
+  - `clawdvault token candles <mint>` - Get price candles
+  - `--interval` flag: 1m, 5m, 15m, 1h, 1d (default: 5m)
+  - `--currency` flag: sol or usd (default: usd)
+  - `--limit` flag: Number of candles (default: 100)
+
 ### Changed
 - **CLI now displays USD values** by default for prices and market caps
   - `clawdvault tokens list` - Shows USD price and market cap
   - `clawdvault token get` - Shows USD price with SOL in parentheses
   - `clawdvault token stats` - Shows USD market cap and SOL price
   - `clawdvault trade history` - Shows price in USD
+  - `clawdvault token candles` - Defaults to USD candles
   - Removed manual SOL→USD conversion calculations in favor of API-provided USD values
+
+### Breaking Changes
+- CLI output format changed: Prices now display in USD by default instead of SOL. Use `--json` for raw SOL values or view SOL values in parentheses where shown.
 
 ### Technical
 - Regenerated TypeScript types from updated OpenAPI spec
