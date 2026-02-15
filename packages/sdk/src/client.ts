@@ -42,6 +42,15 @@ import type {
   TradesParams,
   CandlesParams,
   ChatParams,
+  AgentRegisterRequest,
+  AgentClaimRequest,
+  AgentRegisterResponse,
+  AgentClaimResponse,
+  AgentsListResponse,
+  UsersListResponse,
+  SiteStatsResponse,
+  AgentsListParams,
+  UsersListParams,
 } from './types';
 import { WalletSigner, signAndSerialize, createAuthSignature } from './wallet';
 
@@ -606,6 +615,83 @@ export class ClawdVaultClient {
     const buffer = fs.readFileSync(filePath);
     const filename = path.basename(filePath);
     return this.uploadImage(buffer, filename);
+  }
+
+  // ============ Agent Operations ============
+
+  /**
+   * Register a new agent
+   */
+  async registerAgent(params: AgentRegisterRequest): Promise<AgentRegisterResponse> {
+    return this.request('POST', '/agent/register', { body: params });
+  }
+
+  /**
+   * Verify agent via Twitter claim
+   */
+  async claimAgent(params: AgentClaimRequest): Promise<AgentClaimResponse> {
+    return this.request('POST', '/agent/claim', { body: params });
+  }
+
+  /**
+   * List agents (leaderboard)
+   */
+  async listAgents(params: Partial<AgentsListParams> = {}): Promise<AgentsListResponse> {
+    return this.request('GET', '/agents', { params });
+  }
+
+  /**
+   * List users (leaderboard)
+   */
+  async listUsers(params: Partial<UsersListParams> = {}): Promise<UsersListResponse> {
+    return this.request('GET', '/users', { params });
+  }
+
+  /**
+   * Get site-wide stats
+   */
+  async getSiteStats(): Promise<SiteStatsResponse> {
+    return this.request('GET', '/site-stats');
+  }
+
+  /**
+   * Upload avatar image for an agent
+   * Requires API key authentication
+   */
+  async uploadAvatar(
+    file: File | Buffer | Uint8Array,
+    wallet: string,
+    apiKey: string,
+    filename = 'avatar.png'
+  ): Promise<UploadResponse> {
+    const formData = new FormData();
+
+    if (file instanceof Blob) {
+      formData.append('file', file, filename);
+    } else {
+      const blob = new Blob([file as BlobPart]);
+      formData.append('file', blob, filename);
+    }
+    formData.append('type', 'avatar');
+    formData.append('wallet', wallet);
+
+    const url = `${this.baseUrl}/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: response.statusText }));
+      const err = new Error(error.error || error.message || `HTTP ${response.status}`);
+      (err as any).status = response.status;
+      (err as any).response = error;
+      this.onError?.(err);
+      throw err;
+    }
+
+    return response.json();
   }
 
   // ============ Network ============

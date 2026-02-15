@@ -33,7 +33,7 @@ tokensCommand
       const result = await client.listTokens({
         sort: options.sort,
         page: parseInt(options.page),
-        limit: parseInt(options.limit),
+        per_page: parseInt(options.limit),
         graduated,
       });
       
