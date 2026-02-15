@@ -594,12 +594,20 @@ export class ClawdVaultClient {
    */
   async uploadImage(file: File | Buffer | Uint8Array, filename = 'image.png'): Promise<UploadResponse> {
     const formData = new FormData();
-    
+
+    // Infer MIME type from filename extension for proper server validation
+    const extMap: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.webp': 'image/webp',
+    };
+    const ext = '.' + (filename.split('.').pop()?.toLowerCase() ?? 'png');
+    const mimeType = extMap[ext] || 'image/png';
+
     if (file instanceof Blob) {
       formData.append('file', file, filename);
     } else {
-      // Node.js Buffer/Uint8Array - convert to Blob
-      const blob = new Blob([file as BlobPart]);
+      // Node.js Buffer/Uint8Array — set MIME type so server accepts it
+      const blob = new Blob([file as BlobPart], { type: mimeType });
       formData.append('file', blob, filename);
     }
 
@@ -666,10 +674,19 @@ export class ClawdVaultClient {
   ): Promise<UploadResponse> {
     const formData = new FormData();
 
+    // Infer MIME type from filename extension for proper server validation
+    const extMap: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.webp': 'image/webp',
+    };
+    const ext = '.' + (filename.split('.').pop()?.toLowerCase() ?? 'png');
+    const mimeType = extMap[ext] || 'image/png';
+
     if (file instanceof Blob) {
       formData.append('file', file, filename);
     } else {
-      const blob = new Blob([file as BlobPart]);
+      // Node.js Buffer/Uint8Array — set MIME type so server accepts it
+      const blob = new Blob([file as BlobPart], { type: mimeType });
       formData.append('file', blob, filename);
     }
     formData.append('type', 'avatar');
